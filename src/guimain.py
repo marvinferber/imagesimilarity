@@ -3,9 +3,9 @@ import logging
 import wx
 from wx.lib.dragscroller import DragScroller
 
-from Process import LoadImagesWorkerThread, EVT_RESULT_ID, ImageData, read_image_oriented, EVT_RESULT_MASTER, \
+from process import LoadImagesWorkerThread, EVT_RESULT_ID, ImageData, read_image_oriented, EVT_RESULT_MASTER, \
     EVT_RESULT_PROGRESS
-from WxMainFrame import MainFrame
+from wxmainframe import MainFrame
 
 
 def scale_bitmap(bitmap, width, height):
@@ -36,18 +36,18 @@ def get_nearest_lower(entrylist, query):
 class DragScrollerCustom(wx.ScrolledWindow):
     def __init__(self, parent, id, position, size, hints):
         wx.ScrolledWindow.__init__(self, parent, id, position, size, hints)
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
-        self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
-        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        self.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+        self.Bind(wx.EVT_PAINT, self.onPaint)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
+        self.Bind(wx.EVT_RIGHT_UP, self.onRightUp)
+        self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.onDoubleClick)
 
         self.imagedata = None
         self.scroller = DragScroller(self)
         self.poskeydict = {}
         self.linecount = 0
 
-    def OnPaint(self, event):
+    def onPaint(self, event):
         # print("OnPaint called!")
         dc = wx.PaintDC(self)
         self.DoPrepareDC(dc)
@@ -100,17 +100,17 @@ class DragScrollerCustom(wx.ScrolledWindow):
             self.SetVirtualSize((canvas_width, pointheight + 241))
             self.Layout()
 
-    def OnRightDown(self, event):
+    def onRightDown(self, event):
         self.scroller.Start(event.GetPosition())
 
-    def OnRightUp(self, event):
+    def onRightUp(self, event):
         self.scroller.Stop()
 
-    def OnLeftUp(self, event):
+    def onLeftUp(self, event):
         unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
         print("OnLeftUp " + str(unscrolled))
 
-    def OnDoubleClick(self, event):
+    def onDoubleClick(self, event):
         unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
         pointwidth, pointheight = unscrolled
         lomatchheight = get_nearest_lower(self.poskeydict.keys(), pointheight)
@@ -142,9 +142,9 @@ class ImageDialog(wx.Frame):
         width = width / 3 * 2
         height = height / 3 * 2
         self.SetClientSize((width, height))
-        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_PAINT, self.onPaint)
 
-    def on_paint(self, event=None):
+    def onPaint(self, event=None):
         dc = wx.PaintDC(self)
         width, height = self.GetSize()
         scaledbitmap, gap = scale_bitmap(self.bitmap, width, height)
@@ -162,7 +162,7 @@ class GUIMainFrame(MainFrame):
         self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
 
         # Set up event handler for any worker thread results
-        self.Connect(-1, -1, EVT_RESULT_ID, self.OnResult)
+        self.Connect(-1, -1, EVT_RESULT_ID, self.onResult)
         # And indicate we don't have a worker thread yet
         self.worker = None
         # init data object
@@ -208,7 +208,7 @@ class GUIMainFrame(MainFrame):
         dialog.Destroy()
         event.Skip()
 
-    def OnResult(self, event):
+    def onResult(self, event):
         """Show Result status."""
         if event.data is None:
             # Thread aborted (using our convention of None return)

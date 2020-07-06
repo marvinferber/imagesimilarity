@@ -23,7 +23,7 @@ THUMBNAIL_MAX_SIZE = 240
 pyexiv2.core.set_log_level(4)
 
 
-def findfilescurrent(which, where='.'):
+def find_files_current(which, where='.'):
     '''Returns list of filenames from `where` path matched by 'which'
        shell pattern. Matching is case-insensitive.'''
 
@@ -31,7 +31,7 @@ def findfilescurrent(which, where='.'):
     return [os.path.join(where, name) for name in os.listdir(where) if rule.match(name)]
 
 
-def findfilesrecursive(which, where='.'):
+def find_files_recursive(which, where='.'):
     rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
     matches = []
     for root, dirnames, filenames in os.walk(where):
@@ -141,9 +141,9 @@ class LoadImagesWorkerThread(Thread):
         self._notify_window = notify_window
         self._path = path
         self._imagedata = imagedata
-        self._loadfunc = findfilescurrent
+        self._loadfunc = find_files_current
         if (recursive):
-            self._loadfunc = findfilesrecursive
+            self._loadfunc = find_files_recursive
         self._want_abort = 0
         # This starts the thread running on creation, but you could
         # also make the GUI thread responsible for calling this
