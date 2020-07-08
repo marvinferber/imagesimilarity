@@ -113,6 +113,31 @@ def read_thumb_oriented_exif(jpg):
         logging.error("OSError error: {0}".format(err) + " at image " + jpg)
         img = None
     return jpg, img, imagedate
+	
+def read_image_oriented(jpg):
+    # Read Metadata from the image
+    exif = ExifData(jpg)
+    metadata = exif.read_exif()
+    # Let's get the orientation
+    orientation = 1
+    try:
+        orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
+    except KeyError as err:
+        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
+    img = Image.open(jpg)
+    # Landscape Left : Do nothing
+    if orientation == 1:  # ORIENTATION_NORMAL:
+        pass
+        # Portrait Normal : Rotate Right
+    elif orientation == 6:  # ORIENTATION_LEFT:
+        img = img.transpose(Image.ROTATE_270)
+    # Landscape Right : Rotate Right Twice
+    elif orientation == 3:  # ORIENTATION_DOWN:
+        img = img.transpose(Image.ROTATE_180)
+    # Portrait Upside Down : Rotate Left
+    elif orientation == 8:  # ORIENTATION_RIGHT:
+        img = img.transpose(Image.ROTATE_90)
+    return img
 
 
 class LoadImagesWorkerThread(Thread):
@@ -168,6 +193,9 @@ class LoadImagesWorkerThread(Thread):
                     wxbitmap = wx.Bitmap.FromBuffer(width, height, thumb.tobytes())
                 except ValueError as err:
                     logging.error("ValueError error: {0}".format(err) + " at image " + filename)
+                    continue
+                except RuntimeError as err:
+                    logging.error("RuntimeError error: {0}".format(err) + " at image " + filename)
                     continue
                 self._imagedata.addThumbnail(filename, wxbitmap)
                 self._imagedata.addDateTime(filename, imagedate)

@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 
 import wx
 from wx.lib.dragscroller import DragScroller
@@ -213,6 +214,7 @@ class GUIMainFrame(MainFrame):
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.ERROR)
     app = wx.App(False)
     frame = GUIMainFrame(None)
