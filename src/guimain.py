@@ -178,11 +178,6 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders non-recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
 
-        # tree = self.m_genericDirCtrl.GetTreeCtrl()
-        # tree.AppendItem(tree.GetRootItem(), dialog.GetPath())
-        # (re) init sizer
-        # self.init_scrolled_window()
-        # self.imagedata.clear()
         # start WorkerThread
         self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
         dialog.Destroy()
@@ -198,11 +193,6 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
 
-        # tree = self.m_genericDirCtrl.GetTreeCtrl()
-        # tree.AppendItem(tree.GetRootItem(), dialog.GetPath())
-        # (re) init sizer
-        # self.init_scrolled_window()
-        # self.imagedata.clear()
         # start WorkerThread
         self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
         dialog.Destroy()

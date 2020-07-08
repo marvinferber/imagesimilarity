@@ -1,16 +1,16 @@
 import fnmatch
+import logging
 import os
 import re
 import time
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from threading import Thread
-import logging
 
+import pyexiv2
 import wx
 from PIL import Image, UnidentifiedImageError
 from pyexiv2 import Image as ExifData
-import pyexiv2
 
 EVT_RESULT_MASTER = 1
 EVT_RESULT_NEIGHBORS = 2
@@ -25,13 +25,18 @@ pyexiv2.core.set_log_level(4)
 
 def find_files_current(which, where='.'):
     '''Returns list of filenames from `where` path matched by 'which'
-       shell pattern. Matching is case-insensitive.'''
+    shell pattern. Matching is case-insensitive.
+    see: https://stackoverflow.com/a/47601700'''
 
     rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
     return [os.path.join(where, name) for name in os.listdir(where) if rule.match(name)]
 
 
 def find_files_recursive(which, where='.'):
+    '''Returns list of filenames from `where` path matched by 'which'
+    shell pattern. Matching is case-insensitive.
+    Method walks all underlying file tree.'''
+
     rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
     matches = []
     for root, dirnames, filenames in os.walk(where):
@@ -42,6 +47,11 @@ def find_files_recursive(which, where='.'):
 
 
 def read_thumb_oriented_exif(jpg):
+    '''Reads an image from PATH 'jpg'. Can be any PIL compatible image.
+    Extracts EXIF information and rotates correspondingly.
+    Also creates thumbnail for gallery (crops to square format)
+    see: https://stackoverflow.com/a/13893303'''
+
     # Read Metadata from the image
     try:
         exif = ExifData(jpg)
@@ -89,7 +99,7 @@ def read_thumb_oriented_exif(jpg):
         img = img.transpose(Image.ROTATE_90)
 
     try:
-        # crop quadrat
+        # crop square format for thumbnail
         if img.width > img.height:
             gap = int((img.width - img.height) / 2)
             img = img.crop((0 + gap, 0, img.width - gap, img.height))
@@ -103,32 +113,6 @@ def read_thumb_oriented_exif(jpg):
         logging.error("OSError error: {0}".format(err) + " at image " + jpg)
         img = None
     return jpg, img, imagedate
-
-
-def read_image_oriented(jpg):
-    # Read Metadata from the image
-    exif = ExifData(jpg)
-    metadata = exif.read_exif()
-    # Let's get the orientation
-    orientation = 1
-    try:
-        orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
-    except KeyError as err:
-        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
-    img = Image.open(jpg)
-    # Landscape Left : Do nothing
-    if orientation == 1:  # ORIENTATION_NORMAL:
-        pass
-        # Portrait Normal : Rotate Right
-    elif orientation == 6:  # ORIENTATION_LEFT:
-        img = img.transpose(Image.ROTATE_270)
-    # Landscape Right : Rotate Right Twice
-    elif orientation == 3:  # ORIENTATION_DOWN:
-        img = img.transpose(Image.ROTATE_180)
-    # Portrait Upside Down : Rotate Left
-    elif orientation == 8:  # ORIENTATION_RIGHT:
-        img = img.transpose(Image.ROTATE_90)
-    return img
 
 
 class LoadImagesWorkerThread(Thread):
@@ -152,30 +136,28 @@ class LoadImagesWorkerThread(Thread):
     def run(self):
         """Run Worker Thread."""
 
-        # if self._want_abort:
-        # img___jpg = "/home/ferber/PycharmProjectocv_feature/test/IMG_8802.JPG"
-        # img = self.read_image_oriented(img___jpg)
-
-        # wx.PostEvent(self._notify_window, ResultEvent(img))
         self._imagedata.clear()
+        self._want_abort = 0
         ################################################
         folder_path = self._path
         img_list = []
         for file in self._loadfunc("*.jpg", folder_path):
             img_list.append(file)
         img_list.sort()
-        #
+        # read files separately using multithreaded pool
         pool = Pool(cpu_count())
         load_results = pool.map_async(read_thumb_oriented_exif, img_list)
         pool.close()  # 'TERM'
         # maintain status gauge here
         while (True):
-            if (load_results.ready()): break
+            if (load_results.ready() or self._want_abort==1): break
             time.sleep(0.3)
             remaining = load_results._number_left
             # print("Waiting for", remaining, "tasks to complete...")
             wx.PostEvent(self._notify_window,
                          ResultEvent((len(img_list) - remaining) / len(img_list), EVT_RESULT_PROGRESS))
+        if(self._want_abort==1):
+            pool.terminate()
         pool.join()  # 'KILL'
         #
         for item in load_results.get():
@@ -213,7 +195,17 @@ class ResultEvent(wx.PyEvent):
 
 
 class ImageData():
-    """Data structure to carry all data of the images"""
+    """Data structure to carry all data of the images
+    └── imagedict
+        └── path[n]
+            ├── featuresannoy
+            ├── image
+            ├── thumbnail
+            └── datetime
+    └── datetimedict
+        └── datetime[n]
+            └── path
+    """
 
     def __init__(self):
         self.imagedict = {}
