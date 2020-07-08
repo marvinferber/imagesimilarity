@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import fnmatch
 import logging
 import os
@@ -57,26 +59,31 @@ def read_thumb_oriented_exif(jpg):
         exif = ExifData(jpg)
         metadata = exif.read_exif()
     except RuntimeError as err:
-        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
         metadata = {}
     except UnicodeDecodeError as err:
-        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
-        metadata = {}
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg + "--> trying iso-8859-1 instead")
+        metadata = exif.read_exif("iso-8859-1")
     # Let's get the orientation
     orientation = 1
     imagedate = None
     try:
         orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
-        imagedate = metadata.__getitem__("Exif.Image.DateTime")
     except KeyError as err:
-        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
+
+    try:
+        #imagedate = metadata.__getitem__("Exif.Image.DateTime")
+        imagedate = metadata.__getitem__("Exif.Photo.DateTimeOriginal")
+    except KeyError as err:
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
 
     if imagedate is not None:
         std_fmt = '%Y:%m:%d %H:%M:%S'
         try:
             imagedate = datetime.strptime(imagedate, std_fmt)
         except ValueError as err:
-            logging.error("DateTime error: {0}".format(err) + " at image " + jpg)
+            logging.debug("DateTime error: {0}".format(err) + " at image " + jpg)
             imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
     else:
         imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
@@ -116,14 +123,21 @@ def read_thumb_oriented_exif(jpg):
 	
 def read_image_oriented(jpg):
     # Read Metadata from the image
-    exif = ExifData(jpg)
-    metadata = exif.read_exif()
+    try:
+        exif = ExifData(jpg)
+        metadata = exif.read_exif()
+    except RuntimeError as err:
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
+        metadata = {}
+    except UnicodeDecodeError as err:
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg + "--> trying iso-8859-1 instead")
+        metadata = exif.read_exif("iso-8859-1")
     # Let's get the orientation
     orientation = 1
     try:
         orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
     except KeyError as err:
-        logging.error("EXIF error: {0}".format(err) + " at image " + jpg)
+        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
     img = Image.open(jpg)
     # Landscape Left : Do nothing
     if orientation == 1:  # ORIENTATION_NORMAL:
@@ -161,7 +175,6 @@ class LoadImagesWorkerThread(Thread):
     def run(self):
         """Run Worker Thread."""
 
-        self._imagedata.clear()
         self._want_abort = 0
         ################################################
         folder_path = self._path
@@ -180,11 +193,13 @@ class LoadImagesWorkerThread(Thread):
             remaining = load_results._number_left
             # print("Waiting for", remaining, "tasks to complete...")
             wx.PostEvent(self._notify_window,
-                         ResultEvent((len(img_list) - remaining) / len(img_list), EVT_RESULT_PROGRESS))
+                         ResultEvent((len(img_list) - remaining) / len(img_list)*0.9, EVT_RESULT_PROGRESS))
         if(self._want_abort==1):
             pool.terminate()
         pool.join()  # 'KILL'
         #
+        wx.PostEvent(self._notify_window,ResultEvent(0.99, EVT_RESULT_PROGRESS))
+        self._imagedata.clear()
         for item in load_results.get():
             filename, thumb, imagedate = item
             if thumb is not None:
@@ -192,17 +207,18 @@ class LoadImagesWorkerThread(Thread):
                 try:
                     wxbitmap = wx.Bitmap.FromBuffer(width, height, thumb.tobytes())
                 except ValueError as err:
-                    logging.error("ValueError error: {0}".format(err) + " at image " + filename)
+                    logging.warn("ValueError error: {0}".format(err) + " at image " + filename)
                     continue
                 except RuntimeError as err:
-                    logging.error("RuntimeError error: {0}".format(err) + " at image " + filename)
+                    logging.warn("RuntimeError error: {0}".format(err) + " at image " + filename + "(insufficient memory?)")
                     continue
                 self._imagedata.addThumbnail(filename, wxbitmap)
                 self._imagedata.addDateTime(filename, imagedate)
             else:
-                logging.warn("File damaged..cannot load JPEG ", filename)
+                logging.warn("File damaged..cannot load JPEG "+ filename)
         wx.PostEvent(self._notify_window, ResultEvent("", EVT_RESULT_MASTER))
         wx.PostEvent(self._notify_window, ResultEvent(None, EVT_RESULT_MASTER))
+        wx.PostEvent(self._notify_window, ResultEvent(0.0, EVT_RESULT_PROGRESS))
 
     def abort(self):
         """abort worker thread."""

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import multiprocessing
 
@@ -109,7 +111,7 @@ class DragScrollerCustom(wx.ScrolledWindow):
 
     def onLeftUp(self, event):
         unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
-        print("OnLeftUp " + str(unscrolled))
+        logging.debug("OnLeftUp " + str(unscrolled))
 
     def onDoubleClick(self, event):
         unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
@@ -118,8 +120,7 @@ class DragScrollerCustom(wx.ScrolledWindow):
         lomatchwidth = get_nearest_lower(self.poskeydict[lomatchheight].keys(), pointwidth)
 
         key = self.poskeydict[lomatchheight][lomatchwidth]
-        print("OnDoubleClick " + str(unscrolled) + " " + str(lomatchheight)+str(lomatchwidth))
-        print(key)
+        logging.debug("OnDoubleClick " + str(unscrolled) + " " + key)
         image = read_image_oriented(key)
         width, height = image.size
         wxbitmap = wx.Bitmap.FromBuffer(width, height, image.tobytes())
@@ -156,6 +157,10 @@ class GUIMainFrame(MainFrame):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.SetTitle("Image Similarity Viewer")
+        icon = wx.Icon()
+        icon.CopyFromBitmap(wx.Bitmap("isv.ico", wx.BITMAP_TYPE_ANY))
+        self.SetIcon(icon)
         # Add the Canvas
         self.m_scrolledWindow = DragScrollerCustom(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
                                                    wx.HSCROLL | wx.VSCROLL)
@@ -179,10 +184,10 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders non-recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
 
-        # start WorkerThread
-        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
         dialog.Destroy()
         event.Skip()
+        # start WorkerThread
+        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
 
     def openFoldersHandler(self, event):
         """
@@ -194,10 +199,10 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
 
-        # start WorkerThread
-        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
         dialog.Destroy()
         event.Skip()
+        # start WorkerThread
+        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
 
     def onResult(self, event):
         """Show Result status."""
@@ -215,7 +220,7 @@ class GUIMainFrame(MainFrame):
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.ERROR)
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.WARN)
     app = wx.App(False)
     frame = GUIMainFrame(None)
     frame.Show()
