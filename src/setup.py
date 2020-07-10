@@ -11,7 +11,6 @@ setup(
     description='Find and display images that are similar.',
     install_requires=[
         'wxPython>=4',
-        'Pillow>=7',
-        'pyexiv2>=2'
+        'Pillow>=7'
     ]
 )

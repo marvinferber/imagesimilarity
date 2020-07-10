@@ -184,10 +184,12 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders non-recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
 
-        dialog.Destroy()
-        event.Skip()
         # start WorkerThread
         self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
+
+        dialog.Destroy()
+        event.Skip()
+
 
     def openFoldersHandler(self, event):
         """
@@ -199,10 +201,12 @@ class GUIMainFrame(MainFrame):
             logging.info("Open folders recursively.. "+dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
 
-        dialog.Destroy()
-        event.Skip()
         # start WorkerThread
         self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
+
+        dialog.Destroy()
+        event.Skip()
+
 
     def onResult(self, event):
         """Show Result status."""

@@ -9,10 +9,10 @@ from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from threading import Thread
 
-import pyexiv2
+import PIL
+import PIL.ExifTags
 import wx
 from PIL import Image, UnidentifiedImageError
-from pyexiv2 import Image as ExifData
 
 EVT_RESULT_MASTER = 1
 EVT_RESULT_NEIGHBORS = 2
@@ -21,9 +21,6 @@ EVT_RESULT_ID = wx.NewId()
 
 MAX_NEIGHBOR_DISPLAY = 10
 THUMBNAIL_MAX_SIZE = 240
-
-pyexiv2.core.set_log_level(4)
-
 
 def find_files_current(which, where='.'):
     '''Returns list of filenames from `where` path matched by 'which'
@@ -56,27 +53,25 @@ def read_thumb_oriented_exif(jpg):
 
     # Read Metadata from the image
     try:
-        exif = ExifData(jpg)
-        metadata = exif.read_exif()
-    except RuntimeError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
-        metadata = {}
-    except UnicodeDecodeError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg + "--> trying iso-8859-1 instead")
-        metadata = exif.read_exif("iso-8859-1")
+        raw = Image.open(jpg)
+    except UnidentifiedImageError as err:
+        logging.error("UnidentifiedImageError error: {0}".format(err) + " at image " + jpg)
+        return jpg,None,None
+
     # Let's get the orientation
     orientation = 1
     imagedate = None
-    try:
-        orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
-    except KeyError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
 
-    try:
-        #imagedate = metadata.__getitem__("Exif.Image.DateTime")
-        imagedate = metadata.__getitem__("Exif.Photo.DateTimeOriginal")
-    except KeyError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
+    if(raw._getexif() is not None):
+        exif = {
+            PIL.ExifTags.TAGS[k]: v
+            for k, v in raw._getexif().items()
+            if k in PIL.ExifTags.TAGS
+        }
+        if('Orientation' in exif):
+            orientation = exif["Orientation"]
+        if('DateTimeOriginal' in exif):
+            imagedate = exif["DateTimeOriginal"]
 
     if imagedate is not None:
         std_fmt = '%Y:%m:%d %H:%M:%S'
@@ -87,25 +82,22 @@ def read_thumb_oriented_exif(jpg):
             imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
     else:
         imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
-    try:
-        img = Image.open(jpg)
-    except UnidentifiedImageError as err:
-        logging.error("PIL error: {0}".format(err) + " at image " + jpg)
-        return jpg, None, imagedate
-    # Landscape Left : Do nothing
-    if orientation == 1:  # ORIENTATION_NORMAL:
-        pass
-        # Portrait Normal : Rotate Right
-    elif orientation == 6:  # ORIENTATION_LEFT:
-        img = img.transpose(Image.ROTATE_270)
-    # Landscape Right : Rotate Right Twice
-    elif orientation == 3:  # ORIENTATION_DOWN:
-        img = img.transpose(Image.ROTATE_180)
-    # Portrait Upside Down : Rotate Left
-    elif orientation == 8:  # ORIENTATION_RIGHT:
-        img = img.transpose(Image.ROTATE_90)
 
     try:
+        # Landscape Left : Do nothing
+        if orientation == 1 or orientation == 0:  # ORIENTATION_NORMAL:
+            img = raw.copy()
+            # Portrait Normal : Rotate Right
+        elif orientation == 6:  # ORIENTATION_LEFT:
+            img = raw.transpose(Image.ROTATE_270)
+        # Landscape Right : Rotate Right Twice
+        elif orientation == 3:  # ORIENTATION_DOWN:
+            img = raw.transpose(Image.ROTATE_180)
+        # Portrait Upside Down : Rotate Left
+        elif orientation == 8:  # ORIENTATION_RIGHT:
+            img = raw.transpose(Image.ROTATE_90)
+        else:
+            logging.error("EXIF Orientation tag "+orientation+" unexpected "+" at image " + jpg+ " --> this may cause problems")
         # crop square format for thumbnail
         if img.width > img.height:
             gap = int((img.width - img.height) / 2)
@@ -119,38 +111,48 @@ def read_thumb_oriented_exif(jpg):
     except OSError as err:
         logging.error("OSError error: {0}".format(err) + " at image " + jpg)
         img = None
+    raw.close()
     return jpg, img, imagedate
 	
 def read_image_oriented(jpg):
     # Read Metadata from the image
     try:
-        exif = ExifData(jpg)
-        metadata = exif.read_exif()
-    except RuntimeError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
-        metadata = {}
-    except UnicodeDecodeError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg + "--> trying iso-8859-1 instead")
-        metadata = exif.read_exif("iso-8859-1")
+        raw = Image.open(jpg)
+    except UnidentifiedImageError as err:
+        logging.error("UnidentifiedImageError error: {0}".format(err) + " at image " + jpg)
+        return None
+
     # Let's get the orientation
     orientation = 1
+    if (raw._getexif() is not None):
+        exif = {
+            PIL.ExifTags.TAGS[k]: v
+            for k, v in raw._getexif().items()
+            if k in PIL.ExifTags.TAGS
+        }
+        if ('Orientation' in exif):
+            orientation = exif["Orientation"]
+
     try:
-        orientation = int(metadata.__getitem__("Exif.Image.Orientation"))
-    except KeyError as err:
-        logging.debug("EXIF error: {0}".format(err) + " at image " + jpg)
-    img = Image.open(jpg)
-    # Landscape Left : Do nothing
-    if orientation == 1:  # ORIENTATION_NORMAL:
-        pass
-        # Portrait Normal : Rotate Right
-    elif orientation == 6:  # ORIENTATION_LEFT:
-        img = img.transpose(Image.ROTATE_270)
-    # Landscape Right : Rotate Right Twice
-    elif orientation == 3:  # ORIENTATION_DOWN:
-        img = img.transpose(Image.ROTATE_180)
-    # Portrait Upside Down : Rotate Left
-    elif orientation == 8:  # ORIENTATION_RIGHT:
-        img = img.transpose(Image.ROTATE_90)
+        # Landscape Left : Do nothing
+        if orientation == 1 or orientation == 0:  # ORIENTATION_NORMAL:
+            img = raw.copy()
+            # Portrait Normal : Rotate Right
+        elif orientation == 6:  # ORIENTATION_LEFT:
+            img = raw.transpose(Image.ROTATE_270)
+        # Landscape Right : Rotate Right Twice
+        elif orientation == 3:  # ORIENTATION_DOWN:
+            img = raw.transpose(Image.ROTATE_180)
+        # Portrait Upside Down : Rotate Left
+        elif orientation == 8:  # ORIENTATION_RIGHT:
+            img = raw.transpose(Image.ROTATE_90)
+        else:
+            logging.error(
+                "EXIF Orientation tag " + orientation + " unexpected " + " at image " + jpg + " --> this may cause problems")
+    except OSError as err:
+        logging.error("OSError error: {0}".format(err) + " at image " + jpg)
+        img = None
+    raw.close()
     return img
 
 
