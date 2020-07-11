@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+import platform
+import winreg
 import fnmatch
 import logging
 import os
@@ -165,6 +166,12 @@ class LoadImagesWorkerThread(Thread):
         """Init Worker Thread Class."""
         Thread.__init__(self)
 
+        self._platform = platform.system()
+        if (self._platform == 'Windows'):
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows")
+            value, type = winreg.QueryValueEx(key, "GDIProcessHandleQuota")
+            self._abort_value = max(int(value) - 100, 0)
+
         self._notify_window = notify_window
         self._path = path
         self._imagedata = imagedata
@@ -183,8 +190,16 @@ class LoadImagesWorkerThread(Thread):
         ################################################
         folder_path = self._path
         img_list = []
+
+        i=0
         for file in self._loadfunc("*.jpg", folder_path):
             img_list.append(file)
+            i=i+1
+            # Avoid to load more images than handles available on Windows
+            if(self._platform=='Windows'):
+                if(i>=self._abort_value):
+                    logging.warn("Loading only "+str(i)+" images due to limited handles on Windows. --> Increase HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\GDIProcessHandleQuota")
+                    break
         img_list.sort()
         # read files separately using multithreaded pool
         pool = Pool(cpu_count())
