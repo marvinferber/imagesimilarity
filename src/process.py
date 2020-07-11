@@ -51,69 +51,71 @@ def read_thumb_oriented_exif(jpg):
     Also creates thumbnail for gallery (crops to square format)
     see: https://stackoverflow.com/a/13893303'''
 
-    # Read Metadata from the image
-    try:
-        raw = Image.open(jpg)
-    except UnidentifiedImageError as err:
-        logging.error("UnidentifiedImageError error: {0}".format(err) + " at image " + jpg)
-        return jpg,None,None
-
     # Let's get the orientation
     orientation = 1
     imagedate = None
+    img_w = 0
+    img_h = 0
+    img_bytes = None
 
-    if(raw._getexif() is not None):
-        exif = {
-            PIL.ExifTags.TAGS[k]: v
-            for k, v in raw._getexif().items()
-            if k in PIL.ExifTags.TAGS
-        }
-        if('Orientation' in exif):
-            orientation = exif["Orientation"]
-        if('DateTimeOriginal' in exif):
-            imagedate = exif["DateTimeOriginal"]
-
-    if imagedate is not None:
-        std_fmt = '%Y:%m:%d %H:%M:%S'
-        try:
-            imagedate = datetime.strptime(imagedate, std_fmt)
-        except ValueError as err:
-            logging.debug("DateTime error: {0}".format(err) + " at image " + jpg)
-            imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
-    else:
-        imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
-
+    # Read Metadata from the image
     try:
-        # Landscape Left : Do nothing
-        if orientation == 1 or orientation == 0:  # ORIENTATION_NORMAL:
-            img = raw.copy()
-            # Portrait Normal : Rotate Right
-        elif orientation == 6:  # ORIENTATION_LEFT:
-            img = raw.transpose(Image.ROTATE_270)
-        # Landscape Right : Rotate Right Twice
-        elif orientation == 3:  # ORIENTATION_DOWN:
-            img = raw.transpose(Image.ROTATE_180)
-        # Portrait Upside Down : Rotate Left
-        elif orientation == 8:  # ORIENTATION_RIGHT:
-            img = raw.transpose(Image.ROTATE_90)
-        else:
-            logging.error("EXIF Orientation tag "+orientation+" unexpected "+" at image " + jpg+ " --> this may cause problems")
-        # crop square format for thumbnail
-        if img.width > img.height:
-            gap = int((img.width - img.height) / 2)
-            img = img.crop((0 + gap, 0, img.width - gap, img.height))
-        else:
-            gap = int((img.height - img.width) / 2)
-            img = img.crop((0, 0 + gap, img.width, img.height - gap))
-        # resize
-        size = THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE
-        img.thumbnail(size, Image.ANTIALIAS)
+        with Image.open(jpg) as img:
+            if (img._getexif() is not None):
+                exif = {
+                    PIL.ExifTags.TAGS[k]: v
+                    for k, v in img._getexif().items()
+                    if k in PIL.ExifTags.TAGS
+                }
+                if ('Orientation' in exif):
+                    orientation = exif["Orientation"]
+                if ('DateTimeOriginal' in exif):
+                    imagedate = exif["DateTimeOriginal"]
+
+            if imagedate is not None:
+                std_fmt = '%Y:%m:%d %H:%M:%S'
+                imagedate = datetime.strptime(imagedate, std_fmt)
+            else:
+                imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
+            # Landscape Left : Do nothing
+            if orientation == 1 or orientation == 0:  # ORIENTATION_NORMAL:
+                img = img.copy()
+                # Portrait Normal : Rotate Right
+            elif orientation == 6:  # ORIENTATION_LEFT:
+                img = img.transpose(Image.ROTATE_270)
+            # Landscape Right : Rotate Right Twice
+            elif orientation == 3:  # ORIENTATION_DOWN:
+                img = img.transpose(Image.ROTATE_180)
+            # Portrait Upside Down : Rotate Left
+            elif orientation == 8:  # ORIENTATION_RIGHT:
+                img = img.transpose(Image.ROTATE_90)
+            else:
+                logging.error(
+                    "EXIF Orientation tag " + orientation + " unexpected " + " at image " + jpg + " --> this may cause problems")
+            # crop square format for thumbnail
+            if img.width > img.height:
+                gap = int((img.width - img.height) / 2)
+                img = img.crop((0 + gap, 0, img.width - gap, img.height))
+            else:
+                gap = int((img.height - img.width) / 2)
+                img = img.crop((0, 0 + gap, img.width, img.height - gap))
+            # resize
+            size = THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE
+            img.thumbnail(size, Image.ANTIALIAS)
+            img_w=img.width
+            img_h=img.height
+            img_bytes = img.tobytes()
+    except UnidentifiedImageError as err:
+        logging.error("UnidentifiedImageError error: {0}".format(err) + " at image " + jpg)
+    except ValueError as err:
+        logging.debug("DateTime error: {0}".format(err) + " at image " + jpg)
+        imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
     except OSError as err:
         logging.error("OSError error: {0}".format(err) + " at image " + jpg)
-        img = None
-    raw.close()
-    return jpg, img, imagedate
-	
+
+    return jpg, img_bytes, imagedate, img_w, img_h
+
+
 def read_image_oriented(jpg):
     # Read Metadata from the image
     try:
@@ -192,10 +194,10 @@ class LoadImagesWorkerThread(Thread):
         while (True):
             if (load_results.ready() or self._want_abort==1): break
             time.sleep(0.3)
-            remaining = load_results._number_left
+            remaining = min(load_results._number_left*load_results._chunksize,len(img_list))
             # print("Waiting for", remaining, "tasks to complete...")
             wx.PostEvent(self._notify_window,
-                         ResultEvent((len(img_list) - remaining) / len(img_list)*0.9, EVT_RESULT_PROGRESS))
+                         ResultEvent((len(img_list) - remaining) / len(img_list), EVT_RESULT_PROGRESS))
         if(self._want_abort==1):
             pool.terminate()
         pool.join()  # 'KILL'
@@ -203,11 +205,11 @@ class LoadImagesWorkerThread(Thread):
         wx.PostEvent(self._notify_window,ResultEvent(0.99, EVT_RESULT_PROGRESS))
         self._imagedata.clear()
         for item in load_results.get():
-            filename, thumb, imagedate = item
+            filename, thumb, imagedate, width, height = item
             if thumb is not None:
-                width, height = thumb.size
+                #width, height = thumb.size
                 try:
-                    wxbitmap = wx.Bitmap.FromBuffer(width, height, thumb.tobytes())
+                    wxbitmap = wx.Bitmap.FromBuffer(width, height, thumb)
                 except ValueError as err:
                     logging.warn("ValueError error: {0}".format(err) + " at image " + filename)
                     continue
