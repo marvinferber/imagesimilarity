@@ -6,9 +6,10 @@ import multiprocessing
 import wx
 from wx.lib.dragscroller import DragScroller
 
-from process import LoadImagesWorkerThread, EVT_RESULT_ID, ImageData, read_image_oriented, EVT_RESULT_MASTER, \
-    EVT_RESULT_PROGRESS
+import process
 from wxmainframe import MainFrame
+
+THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
 
 
 def scale_bitmap(bitmap, width, height):
@@ -29,7 +30,7 @@ def scale_bitmap(bitmap, width, height):
 def get_nearest_lower(entrylist, query):
     last = 0
     for entry in entrylist:
-        if (query < entry):
+        if query < entry:
             return last
         else:
             last = entry
@@ -79,8 +80,9 @@ class DragScrollerCustom(wx.ScrolledWindow):
                         pointheight = pointheight + hspace + font.GetPixelSize().height
                     # horizontal line break, to put the curser to the next beginning of a line
                     else:
-                        dc.DrawText(str(thisyear) + "/" + str(thismonth), 0, pointheight + 241 + hspace)
-                        pointheight = pointheight + 241 + hspace + font.GetPixelSize().height
+                        dc.DrawText(str(thisyear) + "/" + str(thismonth), 0,
+                                    pointheight + THUMBNAIL_MAX_SIZE + 1 + hspace)
+                        pointheight = pointheight + THUMBNAIL_MAX_SIZE + 1 + hspace + font.GetPixelSize().height
                     pointwidth = 0
                     drawpoint = (pointwidth, pointheight)
                 month = thismonth
@@ -93,14 +95,14 @@ class DragScrollerCustom(wx.ScrolledWindow):
                 self.poskeydict[pointheight][pointwidth] = key
                 # print("Draw: " + str(count) + " " + key)
                 count = count + 1
-                pointwidth = pointwidth + 241
-                if (pointwidth > (canvas_width - 241)):
+                pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
+                if (pointwidth > (canvas_width - (THUMBNAIL_MAX_SIZE + 1))):
                     pointwidth = 0
-                    pointheight = pointheight + 241
+                    pointheight = pointheight + THUMBNAIL_MAX_SIZE + 1
                     if (self.linecount == 0):
                         self.linecount = count
                 drawpoint = (pointwidth, pointheight)
-            self.SetVirtualSize((canvas_width, pointheight + 241))
+            self.SetVirtualSize((canvas_width, pointheight + THUMBNAIL_MAX_SIZE + 1))
             self.Layout()
 
     def onRightDown(self, event):
@@ -121,7 +123,7 @@ class DragScrollerCustom(wx.ScrolledWindow):
 
         key = self.poskeydict[lomatchheight][lomatchwidth]
         logging.debug("OnDoubleClick " + str(unscrolled) + " " + key)
-        image = read_image_oriented(key)
+        image = process.read_image_oriented(key)
         width, height = image.size
         wxbitmap = wx.Bitmap.FromBuffer(width, height, image.tobytes())
         dialog = ImageDialog(self, -1, title=key, bitmap=wxbitmap)
@@ -168,11 +170,11 @@ class GUIMainFrame(MainFrame):
         self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
 
         # Set up event handler for any worker thread results
-        self.Connect(-1, -1, EVT_RESULT_ID, self.onResult)
+        self.Connect(-1, -1, process.EVT_RESULT_ID, self.onResult)
         # And indicate we don't have a worker thread yet
         self.worker = None
         # init data object
-        self.imagedata = ImageData()
+        self.imagedata = process.ImageData()
 
     def openFolderHandler(self, event):
         """
@@ -181,15 +183,14 @@ class GUIMainFrame(MainFrame):
         dialog = wx.DirDialog(None, "Choose a folder",
                               style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dialog.ShowModal() == wx.ID_OK:
-            logging.info("Open folders non-recursively.. "+dialog.GetPath())
+            logging.info("Open folders non-recursively.. " + dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
 
         # start WorkerThread
-        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
+        self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
 
         dialog.Destroy()
         event.Skip()
-
 
     def openFoldersHandler(self, event):
         """
@@ -198,15 +199,14 @@ class GUIMainFrame(MainFrame):
         dialog = wx.DirDialog(None, "Choose a folder",
                               style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dialog.ShowModal() == wx.ID_OK:
-            logging.info("Open folders recursively.. "+dialog.GetPath())
+            logging.info("Open folders recursively.. " + dialog.GetPath())
         self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
 
         # start WorkerThread
-        self.worker = LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
+        self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
 
         dialog.Destroy()
         event.Skip()
-
 
     def onResult(self, event):
         """Show Result status."""
@@ -214,12 +214,11 @@ class GUIMainFrame(MainFrame):
             # Thread aborted (using our convention of None return)
             size = self.imagedata.getSize()
             self.m_staticTextStatus.SetLabel('finished.. ' + str(size) + " images")
-        elif event.type == EVT_RESULT_PROGRESS:
-            data=event.data
-            self.m_gaugeStatus.SetValue(data*100)
-        elif event.type == EVT_RESULT_MASTER:
+        elif event.type == process.EVT_RESULT_PROGRESS:
+            data = event.data
+            self.m_gaugeStatus.SetValue(data * 100)
+        elif event.type == process.EVT_RESULT_MASTER:
             self.m_scrolledWindow.redraw(self.imagedata)
-
 
 
 if __name__ == '__main__':
