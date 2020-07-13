@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import platform
-import winreg
 import fnmatch
 import logging
 import os
@@ -180,6 +179,7 @@ class LoadImagesWorkerThread(Thread):
 
         self._platform = platform.system()
         if self._platform == 'Windows':
+            import winreg
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows")
             value, value_type = winreg.QueryValueEx(key, "GDIProcessHandleQuota")
             self._abort_value = max(int(value) - 100, 0)
