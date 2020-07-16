@@ -7,6 +7,7 @@ import wx
 from wx.lib.dragscroller import DragScroller
 
 import process
+import processannoy
 from wxmainframe import MainFrame
 
 THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
@@ -37,8 +38,8 @@ def get_nearest_lower(entrylist, query):
     return last
 
 
-class DragScrollerCustom(wx.ScrolledWindow):
-    def __init__(self, parent, id, position, size, hints):
+class DragScrollerGallery(wx.ScrolledWindow):
+    def __init__(self, imagedata, parent, id, position, size, hints):
         wx.ScrolledWindow.__init__(self, parent, id, position, size, hints)
         self.Bind(wx.EVT_PAINT, self.onPaint)
         self.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
@@ -46,7 +47,7 @@ class DragScrollerCustom(wx.ScrolledWindow):
         self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
         self.Bind(wx.EVT_LEFT_DCLICK, self.onDoubleClick)
 
-        self.imagedata = None
+        self.imagedata = imagedata
         self.scroller = DragScroller(self)
         self.poskeydict = {}
         self.linecount = 0
@@ -129,8 +130,88 @@ class DragScrollerCustom(wx.ScrolledWindow):
         dialog = ImageDialog(self, -1, title=key, bitmap=wxbitmap)
         dialog.Show()
 
-    def redraw(self, imagedata):
+    def redraw(self, data):
+        # self.imagedata = imagedata
+        self.Refresh()
+        self.Update()
+
+
+class DragScrollerSimilarity(wx.ScrolledWindow):
+    def __init__(self, imagedata, parent, id, position, size, hints):
+        wx.ScrolledWindow.__init__(self, parent, id, position, size, hints)
+        self.Bind(wx.EVT_PAINT, self.onPaint)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
+        self.Bind(wx.EVT_RIGHT_UP, self.onRightUp)
+        self.Bind(wx.EVT_LEFT_UP, self.onLeftUp)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.onDoubleClick)
+
         self.imagedata = imagedata
+        self.similaritydata = None
+        self.scroller = DragScroller(self)
+        self.poskeydict = {}
+        self.linecount = 0
+
+    def onPaint(self, event):
+        # print("OnPaint called!")
+        dc = wx.PaintDC(self)
+        self.DoPrepareDC(dc)
+        #self.poskeydict = {}
+
+        if self.similaritydata is not None:
+            canvas_width, canvas_height = self.GetSize()
+            drawpoint = (0, 0)
+            #count = 0
+            #self.linecount = 0
+
+            for line in self.similaritydata:
+                for key in line:
+                    dc.DrawBitmap(key, drawpoint)
+                    pointwidth, pointheight = drawpoint
+                    # insert key into posekeydict to retrieve the key for a clicked position
+                    # if (pointheight not in self.poskeydict.keys()):
+                    #     self.poskeydict[pointheight] = {}
+                    # self.poskeydict[pointheight][pointwidth] = key
+                    # print("Draw: " + str(count) + " " + key)
+                    #count = count + 1
+                    pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
+                    # if (pointwidth > (canvas_width - (THUMBNAIL_MAX_SIZE + 1))):
+                    #
+                    #     if (self.linecount == 0):
+                    #         self.linecount = count
+                    drawpoint = (pointwidth, pointheight)
+                pointwidth, pointheight = drawpoint
+                pointwidth = 0
+                pointheight = pointheight + THUMBNAIL_MAX_SIZE + 1
+                drawpoint = (pointwidth, pointheight)
+            self.SetVirtualSize((canvas_width, pointheight + THUMBNAIL_MAX_SIZE + 1))
+            self.Layout()
+
+    def onRightDown(self, event):
+        self.scroller.Start(event.GetPosition())
+
+    def onRightUp(self, event):
+        self.scroller.Stop()
+
+    def onLeftUp(self, event):
+        unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
+        logging.debug("OnLeftUp " + str(unscrolled))
+
+    def onDoubleClick(self, event):
+        unscrolled = self.CalcUnscrolledPosition(event.GetPosition())
+        pointwidth, pointheight = unscrolled
+        lomatchheight = get_nearest_lower(self.poskeydict.keys(), pointheight)
+        lomatchwidth = get_nearest_lower(self.poskeydict[lomatchheight].keys(), pointwidth)
+
+        key = self.poskeydict[lomatchheight][lomatchwidth]
+        logging.debug("OnDoubleClick " + str(unscrolled) + " " + key)
+        image = process.read_image_oriented(key)
+        width, height = image.size
+        wxbitmap = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+        dialog = ImageDialog(self, -1, title=key, bitmap=wxbitmap)
+        dialog.Show()
+
+    def redraw(self, data):
+        self.similaritydata = data
         self.Refresh()
         self.Update()
 
@@ -164,9 +245,9 @@ class GUIMainFrame(MainFrame):
         icon.CopyFromBitmap(wx.Bitmap("isv.ico", wx.BITMAP_TYPE_ANY))
         self.SetIcon(icon)
         # Add the Canvas
-        self.m_scrolledWindow = DragScrollerCustom(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                                   wx.HSCROLL | wx.VSCROLL)
-        self.m_scrolledWindow.SetScrollRate(5, 5)
+        self.m_scrolledWindow = DragScrollerGallery(None, self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+                                                    wx.HSCROLL | wx.VSCROLL)
+        self.m_scrolledWindow.SetScrollRate(15, 15)
         self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
 
         # Set up event handler for any worker thread results
@@ -176,18 +257,28 @@ class GUIMainFrame(MainFrame):
         # init data object
         self.imagedata = process.ImageData()
 
+    def processAnnoyHandler(self, event):
+        """
+            Compute similar images
+        """
+        self.m_staticTextStatus.SetLabel('Computing similarities annoy... ')
+
+        # start WorkerThread
+        self.worker = processannoy.ProcessAnnoyWorkerThread(self, self.imagedata)
+
+        event.Skip()
+
     def openFolderHandler(self, event):
         """
             Browse for file
         """
         dialog = wx.DirDialog(None, "Choose a folder",
                               style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
-        if dialog.ShowModal() == wx.ID_OK:
+        if dialog.ShowModal() == wx.ID_OK:  # only start loading on OK
             logging.info("Open folders non-recursively.. " + dialog.GetPath())
-        self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
-
-        # start WorkerThread
-        self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
+            self.m_staticTextStatus.SetLabel('Loading Images...from ' + dialog.GetPath())
+            # start WorkerThread
+            self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata)
 
         dialog.Destroy()
         event.Skip()
@@ -200,10 +291,9 @@ class GUIMainFrame(MainFrame):
                               style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         if dialog.ShowModal() == wx.ID_OK:
             logging.info("Open folders recursively.. " + dialog.GetPath())
-        self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
-
-        # start WorkerThread
-        self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
+            self.m_staticTextStatus.SetLabel('Loading Images recursively...from ' + dialog.GetPath())
+            # start WorkerThread
+            self.worker = process.LoadImagesWorkerThread(self, dialog.GetPath(), self.imagedata, recursive=True)
 
         dialog.Destroy()
         event.Skip()
@@ -218,7 +308,28 @@ class GUIMainFrame(MainFrame):
             data = event.data
             self.m_gaugeStatus.SetValue(data * 100)
         elif event.type == process.EVT_RESULT_MASTER:
-            self.m_scrolledWindow.redraw(self.imagedata)
+            # reinitialize DragScroller
+            self.bSizerImageSection.Hide(self.m_scrolledWindow)
+            self.bSizerImageSection.Remove(0)
+            self.m_scrolledWindow = DragScrollerGallery(self.imagedata, self, wx.ID_ANY, wx.DefaultPosition,
+                                                        wx.DefaultSize,
+                                                        wx.HSCROLL | wx.VSCROLL)
+            self.m_scrolledWindow.SetScrollRate(15, 15)
+            self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
+            self.bSizerImageSection.Layout()
+            # actual redraw with new data
+            self.m_scrolledWindow.redraw(None)
+
+        elif event.type == process.EVT_RESULT_NEIGHBORS:
+            self.bSizerImageSection.Hide(self.m_scrolledWindow)
+            self.bSizerImageSection.Remove(0)
+            self.m_scrolledWindow = DragScrollerSimilarity(self.imagedata, self, wx.ID_ANY, wx.DefaultPosition,
+                                                           wx.DefaultSize,
+                                                           wx.HSCROLL | wx.VSCROLL)
+            self.m_scrolledWindow.SetScrollRate(15, 15)
+            self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
+            self.bSizerImageSection.Layout()
+            self.m_scrolledWindow.redraw(event.data)
 
 
 if __name__ == '__main__':

@@ -10,7 +10,11 @@ setup(
     author_email='ferbhome@freenet.de',
     description='Find and display images that are similar.',
     install_requires=[
+        'pip>=19',
         'wxPython>=4',
-        'Pillow>=7'
+        'Pillow>=7',
+        'tensorflow',
+        'tensorflow_hub',
+        'annoy'
     ]
 )
