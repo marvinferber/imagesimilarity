@@ -10,11 +10,13 @@ setup(
     author_email='ferbhome@freenet.de',
     description='Find and display images that are similar.',
     install_requires=[
-        'pip>=19',
         'wxPython>=4',
         'Pillow>=7',
-        'tensorflow',
+        'tensorflow==2.0.2',
         'tensorflow_hub',
-        'annoy'
+        'annoy @ https://download.lfd.uci.edu/pythonlibs/w3jqiv8s/annoy-1.16.3-cp37-cp37m-win_amd64.whl',
+		'pywin32',
+		'setuptools<45',
+		'pyinstaller'
     ]
 )
