@@ -8,7 +8,7 @@ if platform.system() == 'Windows':
         packages=[''],
         url='https://github.com/marvinferber/imagesimilarity',
         license='Apache License 2.0',
-        author='ferber',
+        author='Marvin Ferber',
         author_email='ferbhome@freenet.de',
         description='Find and display images that are similar.',
         install_requires=[
@@ -18,7 +18,7 @@ if platform.system() == 'Windows':
             'tensorflow_hub',
             'annoy @ https://download.lfd.uci.edu/pythonlibs/w3jqiv8s/annoy-1.16.3-cp37-cp37m-win_amd64.whl',
 		    'pywin32',
-		    'setuptools<45',
+		    'setuptools==44',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )
@@ -29,7 +29,7 @@ else:
         packages=[''],
         url='https://github.com/marvinferber/imagesimilarity',
         license='Apache License 2.0',
-        author='ferber',
+        author='Marvin Ferber',
         author_email='ferbhome@freenet.de',
         description='Find and display images that are similar.',
         install_requires=[
@@ -38,7 +38,7 @@ else:
             'tensorflow==2.0.2',
             'tensorflow_hub',
             'annoy',
-		    'setuptools<45',
+		    'setuptools==44',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )

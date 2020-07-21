@@ -152,32 +152,24 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
         self.linecount = 0
 
     def onPaint(self, event):
-        # print("OnPaint called!")
         dc = wx.PaintDC(self)
         self.DoPrepareDC(dc)
-        #self.poskeydict = {}
+        self.poskeydict = {}
 
         if self.similaritydata is not None:
             canvas_width, canvas_height = self.GetSize()
             drawpoint = (0, 0)
-            #count = 0
-            #self.linecount = 0
 
             for line in self.similaritydata:
                 for key in line:
-                    dc.DrawBitmap(key, drawpoint)
+                    dc.DrawBitmap(self.imagedata.getThumbnail(key), drawpoint)
                     pointwidth, pointheight = drawpoint
                     # insert key into posekeydict to retrieve the key for a clicked position
-                    # if (pointheight not in self.poskeydict.keys()):
-                    #     self.poskeydict[pointheight] = {}
-                    # self.poskeydict[pointheight][pointwidth] = key
-                    # print("Draw: " + str(count) + " " + key)
-                    #count = count + 1
-                    pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
-                    # if (pointwidth > (canvas_width - (THUMBNAIL_MAX_SIZE + 1))):
+                    if (pointheight not in self.poskeydict.keys()):
+                        self.poskeydict[pointheight] = {}
+                    self.poskeydict[pointheight][pointwidth] = key
                     #
-                    #     if (self.linecount == 0):
-                    #         self.linecount = count
+                    pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
                     drawpoint = (pointwidth, pointheight)
                 pointwidth, pointheight = drawpoint
                 pointwidth = 0
