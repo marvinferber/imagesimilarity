@@ -20,7 +20,7 @@ EVT_RESULT_PROGRESS = 3
 EVT_RESULT_ID = wx.NewId()
 
 MAX_NEIGHBOR_DISPLAY = 10
-THUMBNAIL_MAX_SIZE = 224
+THUMBNAIL_MAX_SIZE = 150
 
 
 def find_files_current(which, where='.'):
@@ -55,6 +55,7 @@ def read_thumb_oriented_exif(jpg):
     # Let's get the orientation
     orientation = 1
     imagedate_original = None
+    imagedate_digitized = None
     imagedate = None # in case the image is unreadable
     img_w = 0
     img_h = 0
@@ -82,11 +83,14 @@ def read_thumb_oriented_exif(jpg):
                     imagedate = datetime.strptime(imagedate_original, std_fmt)
                 except ValueError as err:
                     logging.debug("EXIF DateTimeOriginal error: {0}".format(err) + " at image " + jpg)
-                    try:
-                        std_fmt = '%Y:%m:%d %H:%M:%S'
-                        imagedate = datetime.strptime(imagedate_digitized, std_fmt)
-                    except ValueError as err:
-                        logging.debug("EXIF DateTimeDigitized error: {0}".format(err) + " at image " + jpg)
+                    if imagedate_digitized is not None:
+                        try:
+                            std_fmt = '%Y:%m:%d %H:%M:%S'
+                            imagedate = datetime.strptime(imagedate_digitized, std_fmt)
+                        except ValueError as err:
+                            logging.debug("EXIF DateTimeDigitized error: {0}".format(err) + " at image " + jpg)
+                            imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
+                    else:
                         imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
             else:
                 imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
