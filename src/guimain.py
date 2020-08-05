@@ -88,7 +88,17 @@ class DragScrollerGallery(wx.ScrolledWindow):
                     drawpoint = (pointwidth, pointheight)
                 month = thismonth
                 year = thisyear
-                dc.DrawBitmap(self.imagedata.getThumbnail(key), drawpoint)
+                #
+                try:
+                    buffer = self.imagedata.getThumbnail(key)
+                    wxbitmap = wx.Bitmap.FromBuffer(THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, buffer)
+                except ValueError as err:
+                    logging.warn("ValueError error: {0}".format(err) + " at image " + key)
+                    continue
+                except RuntimeError as err:
+                    logging.warn(
+                        "RuntimeError error: {0}".format(err) + " at image " + key + "(insufficient memory?)")
+                dc.DrawBitmap(wxbitmap, drawpoint)
                 pointwidth, pointheight = drawpoint
                 # insert key into posekeydict to retrieve the key for a clicked position
                 if (pointheight not in self.poskeydict.keys()):
@@ -162,7 +172,17 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
 
             for line in self.similaritydata:
                 for key in line:
-                    dc.DrawBitmap(self.imagedata.getThumbnail(key), drawpoint)
+                    #
+                    try:
+                        buffer = self.imagedata.getThumbnail(key)
+                        wxbitmap = wx.Bitmap.FromBuffer(THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, buffer)
+                    except ValueError as err:
+                        logging.warn("ValueError error: {0}".format(err) + " at image " + key)
+                        continue
+                    except RuntimeError as err:
+                        logging.warn(
+                            "RuntimeError error: {0}".format(err) + " at image " + key + "(insufficient memory?)")
+                    dc.DrawBitmap(wxbitmap, drawpoint)
                     pointwidth, pointheight = drawpoint
                     # insert key into posekeydict to retrieve the key for a clicked position
                     if (pointheight not in self.poskeydict.keys()):

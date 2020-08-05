@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 import wx
 from annoy import AnnoyIndex
-from process import ResultEvent, EVT_RESULT_NEIGHBORS, EVT_RESULT_PROGRESS
+from process import ResultEvent, EVT_RESULT_NEIGHBORS, EVT_RESULT_PROGRESS, THUMBNAIL_MAX_SIZE
 
 
 class ProcessAnnoyWorkerThread(Thread):
@@ -44,8 +44,8 @@ class ProcessAnnoyWorkerThread(Thread):
             # Loads and pre-process the image
             btmp = self._imagedata.getThumbnail(item)
             # pil_img = wx2PIL(wx_img)
-            image_array = np.fromstring(bytes(btmp.ConvertToImage().GetData()), dtype=np.uint8).reshape(
-                (btmp.GetWidth(), btmp.GetHeight(), 3))
+            image_array = np.fromstring(bytes(btmp), dtype=np.uint8).reshape(
+                (THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, 3))
             # image_array = tf.keras.preprocessing.image.img_to_array(pil_img)
             image_array = tf.convert_to_tensor(image_array)
             tf_image_array = tf.image.convert_image_dtype(image_array, tf.float32)[tf.newaxis, ...]
