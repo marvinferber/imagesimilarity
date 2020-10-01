@@ -30,3 +30,7 @@ Run the program:
 * `python guimain.py`
 
 Since annoy cannot be installed via pip on Windows, there is a fixed whl package for Python 3.7 included in setup.py.
+
+## Release/Install
+
+Pyinstaller can be used to create a distributable package both on Windows and Linux. However, the latest pyinstaller devel is necessary to handle TensorFlow dependencies correctly. Pyinstaller devel will be installed as described above using pip and setup.py for this purpose. Just type `pyinstaller src/guimain.py` to create the distributable package. It will be located in a dist folder.
