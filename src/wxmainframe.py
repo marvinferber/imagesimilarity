@@ -24,6 +24,7 @@ class MainFrame(wx.Frame):
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
 
         self.m_menubar = wx.MenuBar(0)
+        # File menu
         self.file = wx.Menu()
         self.openFolder = wx.MenuItem(self.file, wx.ID_ANY, u"Open Folder", wx.EmptyString, wx.ITEM_NORMAL)
         self.file.Append(self.openFolder)
@@ -32,6 +33,12 @@ class MainFrame(wx.Frame):
         self.file.Append(self.openFolders)
 
         self.m_menubar.Append(self.file, u"File")
+        # Process menu
+        self.process = wx.Menu()
+        self.processAnnoy = wx.MenuItem(self.process, wx.ID_ANY, u"Process Annoy", wx.EmptyString, wx.ITEM_NORMAL)
+        self.process.Append(self.processAnnoy)
+
+        self.m_menubar.Append(self.process, u"Process")
 
         self.SetMenuBar(self.m_menubar)
 
@@ -64,6 +71,7 @@ class MainFrame(wx.Frame):
         # Connect Events
         self.Bind(wx.EVT_MENU, self.openFolderHandler, id=self.openFolder.GetId())
         self.Bind(wx.EVT_MENU, self.openFoldersHandler, id=self.openFolders.GetId())
+        self.Bind(wx.EVT_MENU, self.processAnnoyHandler, id=self.processAnnoy.GetId())
 
     def __del__(self):
         pass
@@ -73,4 +81,7 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def openFoldersHandler(self, event):
+        event.Skip()
+
+    def processAnnoyHandler(self, event):
         event.Skip()

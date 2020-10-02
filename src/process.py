@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+import math
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from threading import Thread
@@ -20,7 +21,7 @@ EVT_RESULT_PROGRESS = 3
 EVT_RESULT_ID = wx.NewId()
 
 MAX_NEIGHBOR_DISPLAY = 10
-THUMBNAIL_MAX_SIZE = 150
+THUMBNAIL_MAX_SIZE = 224
 
 
 def find_files_current(which, where='.'):
@@ -55,6 +56,7 @@ def read_thumb_oriented_exif(jpg):
     # Let's get the orientation
     orientation = 1
     imagedate_original = None
+    imagedate_digitized = None
     imagedate = None # in case the image is unreadable
     img_w = 0
     img_h = 0
@@ -63,6 +65,12 @@ def read_thumb_oriented_exif(jpg):
     # Read Metadata from the image
     try:
         with Image.open(jpg) as img:
+            if img.mode != "RGB":
+                logging.error("Image mode "+img.mode+"is unsupported at image " + jpg)
+                return jpg, None, None, None, None
+            if min(img.width , img.height) < THUMBNAIL_MAX_SIZE:
+                logging.error("Image too small at image " + jpg)
+                return jpg, None, None, None, None
             if img._getexif() is not None:
                 exif = {
                     PIL.ExifTags.TAGS[k]: v
@@ -82,22 +90,27 @@ def read_thumb_oriented_exif(jpg):
                     imagedate = datetime.strptime(imagedate_original, std_fmt)
                 except ValueError as err:
                     logging.debug("EXIF DateTimeOriginal error: {0}".format(err) + " at image " + jpg)
-                    try:
-                        std_fmt = '%Y:%m:%d %H:%M:%S'
-                        imagedate = datetime.strptime(imagedate_digitized, std_fmt)
-                    except ValueError as err:
-                        logging.debug("EXIF DateTimeDigitized error: {0}".format(err) + " at image " + jpg)
+                    if imagedate_digitized is not None:
+                        try:
+                            std_fmt = '%Y:%m:%d %H:%M:%S'
+                            imagedate = datetime.strptime(imagedate_digitized, std_fmt)
+                        except ValueError as err:
+                            logging.debug("EXIF DateTimeDigitized error: {0}".format(err) + " at image " + jpg)
+                            imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
+                    else:
                         imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
             else:
                 imagedate = datetime.fromtimestamp(os.path.getmtime(jpg))
 
             # crop square format for thumbnail
             if img.width > img.height:
-                gap = int((img.width - img.height) / 2)
-                img = img.crop((0 + gap, 0, img.width - gap, img.height))
+                gap_low = int(math.ceil((img.width - img.height) / 2))
+                gap_high = int(math.floor((img.width - img.height) / 2))
+                img = img.crop((0 + gap_low, 0, img.width - gap_high, img.height))
             else:
-                gap = int((img.height - img.width) / 2)
-                img = img.crop((0, 0 + gap, img.width, img.height - gap))
+                gap_low= int(math.ceil((img.height - img.width) / 2))
+                gap_high = int(math.floor((img.height - img.width) / 2))
+                img = img.crop((0, 0 + gap_low, img.width, img.height - gap_high))
             # resize
             size = THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE
             img.thumbnail(size, Image.ANTIALIAS)
@@ -182,7 +195,8 @@ class LoadImagesWorkerThread(Thread):
             import winreg
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows")
             value, value_type = winreg.QueryValueEx(key, "GDIProcessHandleQuota")
-            self._abort_value = max(int(value) - 100, 0)
+            #self._abort_value = max(int(value) - 100, 0)
+            self._abort_value = 100000
 
         self._notify_window = notify_window
         self._path = path
@@ -237,16 +251,16 @@ class LoadImagesWorkerThread(Thread):
             filename, thumb, imagedate, width, height = item
             if thumb is not None:
                 # width, height = thumb.size
-                try:
-                    wxbitmap = wx.Bitmap.FromBuffer(width, height, thumb)
-                except ValueError as err:
-                    logging.warn("ValueError error: {0}".format(err) + " at image " + filename)
-                    continue
-                except RuntimeError as err:
-                    logging.warn(
-                        "RuntimeError error: {0}".format(err) + " at image " + filename + "(insufficient memory?)")
-                    continue
-                self._imagedata.addThumbnail(filename, wxbitmap)
+                # try:
+                #     wxbitmap = wx.Bitmap.FromBuffer(THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, thumb)
+                # except ValueError as err:
+                #     logging.warn("ValueError error: {0}".format(err) + " at image " + filename)
+                #     continue
+                # except RuntimeError as err:
+                #     logging.warn(
+                #         "RuntimeError error: {0}".format(err) + " at image " + filename + "(insufficient memory?)")
+                #     continue
+                self._imagedata.addThumbnail(filename, thumb)
                 self._imagedata.addDateTime(filename, imagedate)
             else:
                 logging.warn("File damaged..cannot load JPEG " + filename)
