@@ -21,7 +21,7 @@ EVT_RESULT_PROGRESS = 3
 EVT_RESULT_ID = wx.NewId()
 
 MAX_NEIGHBOR_DISPLAY = 10
-THUMBNAIL_MAX_SIZE = 150
+THUMBNAIL_MAX_SIZE = 224
 
 
 def find_files_current(which, where='.'):
