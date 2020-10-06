@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import platform
 import fnmatch
 import logging
 import os
@@ -190,14 +189,6 @@ class LoadImagesWorkerThread(Thread):
         """Init Worker Thread Class."""
         Thread.__init__(self)
 
-        self._platform = platform.system()
-        if self._platform == 'Windows':
-            import winreg
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows")
-            value, value_type = winreg.QueryValueEx(key, "GDIProcessHandleQuota")
-            #self._abort_value = max(int(value) - 100, 0)
-            self._abort_value = 100000
-
         self._notify_window = notify_window
         self._path = path
         self._imagedata = imagedata
@@ -213,21 +204,14 @@ class LoadImagesWorkerThread(Thread):
         """Run Worker Thread."""
 
         starttime = datetime.now()
-        self._want_abort = 0
         ################################################
+        self._want_abort = 0
         folder_path = self._path
         img_list = []
 
-        i = 0
         for file in self._loadfunc("*.jpg", folder_path):
             img_list.append(file)
-            i = i + 1
-            # Avoid to load more images than handles available on Windows
-            if self._platform == 'Windows':
-                if i >= self._abort_value:
-                    logging.warn("Loading only " + str(
-                        i) + " images due to limited handles on Windows. --> Increase HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\GDIProcessHandleQuota")
-                    break
+
         img_list.sort()
         # read files separately using multithreaded pool
         pool = Pool(cpu_count())
@@ -250,16 +234,6 @@ class LoadImagesWorkerThread(Thread):
         for item in load_results.get():
             filename, thumb, imagedate, width, height = item
             if thumb is not None:
-                # width, height = thumb.size
-                # try:
-                #     wxbitmap = wx.Bitmap.FromBuffer(THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, thumb)
-                # except ValueError as err:
-                #     logging.warn("ValueError error: {0}".format(err) + " at image " + filename)
-                #     continue
-                # except RuntimeError as err:
-                #     logging.warn(
-                #         "RuntimeError error: {0}".format(err) + " at image " + filename + "(insufficient memory?)")
-                #     continue
                 self._imagedata.addThumbnail(filename, thumb)
                 self._imagedata.addDateTime(filename, imagedate)
             else:
@@ -267,7 +241,7 @@ class LoadImagesWorkerThread(Thread):
         wx.PostEvent(self._notify_window, ResultEvent("", EVT_RESULT_MASTER))
         wx.PostEvent(self._notify_window, ResultEvent(None, EVT_RESULT_MASTER))
         wx.PostEvent(self._notify_window, ResultEvent(0.0, EVT_RESULT_PROGRESS))
-
+        ################################################
         stoptime = datetime.now()
         logging.error(
             "LoadImagesWorkerThread took " + str(stoptime-starttime) + " to load " + str(self._imagedata.getSize())+ " image files")
