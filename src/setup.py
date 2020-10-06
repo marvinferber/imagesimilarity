@@ -16,7 +16,7 @@ if platform.system() == 'Windows':
             'Pillow>=7',
             'tensorflow==2.0.2',
             'tensorflow_hub',
-            'annoy @ https://download.lfd.uci.edu/pythonlibs/w3jqiv8s/annoy-1.16.3-cp37-cp37m-win_amd64.whl',
+            'annoy @ https://download.lfd.uci.edu/pythonlibs/x2tqcw5k/annoy-1.17.0-cp37-cp37m-win_amd64.whl',
 		    'pywin32',
 		    'setuptools==44',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
@@ -37,7 +37,7 @@ else:
             'Pillow>=7',
             'tensorflow==2.0.2',
             'tensorflow_hub',
-            'annoy',
+            'annoy>=1.17',
 		    'setuptools==44',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]

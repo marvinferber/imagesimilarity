@@ -39,6 +39,7 @@ class ProcessAnnoyWorkerThread(Thread):
         import tensorflow_hub as hub
         module = hub.load(module_handle)
         starttime = datetime.now()
+        ################################################
         logging.error("Start processing and adding images to AnnoyIndex...")
         for file_index, item in enumerate(list(self._imagedata.getKeys())):
             # Loads and pre-process the image
@@ -64,7 +65,7 @@ class ProcessAnnoyWorkerThread(Thread):
                          ResultEvent((file_index / self._imagedata.getSize()) * 0.5, EVT_RESULT_PROGRESS))
         # Builds annoy index
         logging.error("Building trees...")
-        t.build(trees)
+        t.build(trees,n_jobs=-1)
         wx.PostEvent(self._notify_window, ResultEvent(0.75, EVT_RESULT_PROGRESS))
         # Loops through all indexed items
         returndata = []
@@ -75,7 +76,7 @@ class ProcessAnnoyWorkerThread(Thread):
             thumb_nearest_neighbors = []
             for j in nearest_neighbors:
                 neighbor_name = list(self._imagedata.getKeys())[j]
-                neighbor_thumb = self._imagedata.getThumbnail(neighbor_name)
+                #neighbor_thumb = self._imagedata.getThumbnail(neighbor_name)
                 thumb_nearest_neighbors.append(neighbor_name)
             returndata.append(thumb_nearest_neighbors)
             wx.PostEvent(self._notify_window,
@@ -83,6 +84,7 @@ class ProcessAnnoyWorkerThread(Thread):
         wx.PostEvent(self._notify_window, ResultEvent(returndata, EVT_RESULT_NEIGHBORS))
         wx.PostEvent(self._notify_window, ResultEvent(None, EVT_RESULT_NEIGHBORS))
         wx.PostEvent(self._notify_window, ResultEvent(0.0, EVT_RESULT_PROGRESS))
+        ################################################
         stoptime = datetime.now()
         logging.error(
             "ProcessAnnoyWorkerThread took " + str(stoptime - starttime) + " to process " + str(
