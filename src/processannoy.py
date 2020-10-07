@@ -1,13 +1,35 @@
 # -*- coding: utf-8 -*-
 import logging
+import time
 from datetime import datetime
 from threading import Thread
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 import tensorflow as tf
 import wx
 from annoy import AnnoyIndex
 from process import ResultEvent, EVT_RESULT_NEIGHBORS, EVT_RESULT_PROGRESS, THUMBNAIL_MAX_SIZE
+
+from functools import partial
+
+DIMS = 1792
+n_nearest_neighbors = 10
+
+
+def get_nns(imagedata, img_list):
+    # Calculates the nearest neighbors of the master item
+    t = AnnoyIndex(DIMS, metric='angular')
+    t.load("index.annoy")
+    list_of_thumb_nearest_neighbors = []
+    for item in img_list:
+        nearest_neighbors = t.get_nns_by_item(item, n_nearest_neighbors)
+        thumb_nearest_neighbors = []
+        for j in nearest_neighbors:
+            neighbor_name = list(imagedata.getKeys())[j]
+            thumb_nearest_neighbors.append(neighbor_name)
+        list_of_thumb_nearest_neighbors.append(thumb_nearest_neighbors)
+    return list_of_thumb_nearest_neighbors
 
 
 class ProcessAnnoyWorkerThread(Thread):
@@ -16,6 +38,12 @@ class ProcessAnnoyWorkerThread(Thread):
     def __init__(self, notify_window, imagedata):
         """Init Worker Thread Class."""
         Thread.__init__(self)
+
+        # Configuring annoy parameters
+
+        self._n_nearest_neighbors = 10
+        self._trees = 10000
+        self._t = AnnoyIndex(DIMS, metric='angular')
 
         self._notify_window = notify_window
         self._imagedata = imagedata
@@ -26,11 +54,6 @@ class ProcessAnnoyWorkerThread(Thread):
 
     def run(self):
         """Run Worker Thread."""
-        # Configuring annoy parameters
-        dims = 1792
-        n_nearest_neighbors = 10
-        trees = 10000
-        t = AnnoyIndex(dims, metric='angular')
         # Definition of module with using tfhub.dev handle
         logging.error("Start loading mobilenet...")
         module_handle = "https://tfhub.dev/google/imagenet/mobilenet_v2_140_224/feature_vector/4"
@@ -59,28 +82,52 @@ class ProcessAnnoyWorkerThread(Thread):
             # Remove single-dimensional entries from the 'features' array
             feature_set = np.squeeze(features)
             # Adds image feature vectors into annoy index
-            t.add_item(file_index, feature_set)
+            self._t.add_item(file_index, feature_set)
             # self._imagedata.addFeatureSetAnnoy(filename,feature_set)
             wx.PostEvent(self._notify_window,
                          ResultEvent((file_index / self._imagedata.getSize()) * 0.5, EVT_RESULT_PROGRESS))
         # Builds annoy index
         logging.error("Building trees...")
-        t.build(trees,n_jobs=-1)
+        self._t.build(self._trees,n_jobs=-1)
+        self._t.save("index.annoy")
         wx.PostEvent(self._notify_window, ResultEvent(0.75, EVT_RESULT_PROGRESS))
         # Loops through all indexed items
         returndata = []
         logging.error("Fetching nearest neighbors...")
+        img_list_of_lists = []
+        img_list = []
+        window_size = len(self._imagedata.getKeys())/cpu_count()
+        i = 0
         for file_index, filename in enumerate(list(self._imagedata.getKeys())):
-            # Calculates the nearest neighbors of the master item
-            nearest_neighbors = t.get_nns_by_item(file_index, n_nearest_neighbors)
-            thumb_nearest_neighbors = []
-            for j in nearest_neighbors:
-                neighbor_name = list(self._imagedata.getKeys())[j]
-                #neighbor_thumb = self._imagedata.getThumbnail(neighbor_name)
-                thumb_nearest_neighbors.append(neighbor_name)
-            returndata.append(thumb_nearest_neighbors)
-            wx.PostEvent(self._notify_window,
-                         ResultEvent((file_index / self._imagedata.getSize()) * 0.25 + 0.75, EVT_RESULT_PROGRESS))
+            if (file_index < window_size * i):
+                img_list.append(file_index)
+            else:
+                img_list_of_lists.append(img_list)
+                img_list = []
+                i = i + 1
+                img_list.append(file_index)
+        # read files separately using multithreaded pool
+        pool = Pool(cpu_count())
+        func = partial(get_nns, self._imagedata)
+        load_results = pool.map_async(func, img_list_of_lists)
+        pool.close()  # 'TERM'
+        # maintain status gauge here
+        while True:
+            if load_results.ready() or self._want_abort == 1: break
+            time.sleep(0.3)
+            remaining = min(load_results._number_left * load_results._chunksize, len(img_list_of_lists))
+            # print("Waiting for", remaining, "tasks to complete...")
+            # wx.PostEvent(self._notify_window,
+            #                  ResultEvent((len(img_list_of_lists) - remaining) / len(img_list_of_lists), EVT_RESULT_PROGRESS))
+        if self._want_abort == 1:
+            pool.terminate()
+        pool.join()  # 'KILL'
+
+        for list_of_thumb_nearest_neighbors in load_results.get():
+            for thumb_nearest_neighbors in list_of_thumb_nearest_neighbors:
+                returndata.append(thumb_nearest_neighbors)
+            # wx.PostEvent(self._notify_window,
+            #              ResultEvent((file_index / self._imagedata.getSize()) * 0.25 + 0.75, EVT_RESULT_PROGRESS))
         wx.PostEvent(self._notify_window, ResultEvent(returndata, EVT_RESULT_NEIGHBORS))
         wx.PostEvent(self._notify_window, ResultEvent(None, EVT_RESULT_NEIGHBORS))
         wx.PostEvent(self._notify_window, ResultEvent(0.0, EVT_RESULT_PROGRESS))
