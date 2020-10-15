@@ -5,6 +5,7 @@ import os
 import re
 import time
 import math
+import tempfile
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from threading import Thread
@@ -280,6 +281,10 @@ class ImageData():
         self.imagedict = {}
         self.datetimedict = {}
         self.sortedkeys = None
+        self.tempfile = tempfile.gettempdir() + os.path.sep + "annoy.index"
+
+    def getAnnoyIndexTempFile(self):
+        return self.tempfile
 
     def addFeatureSetAnnoy(self, key, featureset):
         if not key in self.imagedict.keys():

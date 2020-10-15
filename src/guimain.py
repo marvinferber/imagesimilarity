@@ -360,6 +360,10 @@ class GUIMainFrame(MainFrame):
             self.bSizerImageSection.Layout()
             self.m_scrolledWindow.redraw(event.data)
 
+    def onClose(self, event):
+        logging.error("delete AnnoyIndex file " + self.imagedata.getAnnoyIndexTempFile())
+        self.Destroy()
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()

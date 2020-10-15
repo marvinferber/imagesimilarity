@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import time
+import math
 from datetime import datetime
 from threading import Thread
 from multiprocessing import Pool, cpu_count
@@ -20,7 +21,7 @@ n_nearest_neighbors = 10
 def get_nns(imagedata, img_list):
     # Calculates the nearest neighbors of the master item
     t = AnnoyIndex(DIMS, metric='angular')
-    t.load("index.annoy")
+    t.load(imagedata.getAnnoyIndexTempFile())
     list_of_thumb_nearest_neighbors = []
     for item in img_list:
         nearest_neighbors = t.get_nns_by_item(item, n_nearest_neighbors)
@@ -89,23 +90,25 @@ class ProcessAnnoyWorkerThread(Thread):
         # Builds annoy index
         logging.error("Building trees...")
         self._t.build(self._trees,n_jobs=-1)
-        self._t.save("index.annoy")
+        # save annoy index to file for multiprocessing
+        self._t.save(self._imagedata.getAnnoyIndexTempFile())
         wx.PostEvent(self._notify_window, ResultEvent(0.75, EVT_RESULT_PROGRESS))
         # Loops through all indexed items
         returndata = []
         logging.error("Fetching nearest neighbors...")
         img_list_of_lists = []
         img_list = []
-        window_size = len(self._imagedata.getKeys())/cpu_count()
-        i = 0
+        window_size = math.floor(len(self._imagedata.getKeys())/cpu_count())
+        i = 1
         for file_index, filename in enumerate(list(self._imagedata.getKeys())):
-            if (file_index < window_size * i):
+            if file_index < (window_size * i):
                 img_list.append(file_index)
             else:
                 img_list_of_lists.append(img_list)
                 img_list = []
                 i = i + 1
                 img_list.append(file_index)
+        img_list_of_lists.append(img_list)
         # read files separately using multithreaded pool
         pool = Pool(cpu_count())
         func = partial(get_nns, self._imagedata)
