@@ -18,17 +18,16 @@ DIMS = 1792
 n_nearest_neighbors = 10
 
 
-def get_nns(imagedata, img_list):
+def get_nns(annoyindex_tempfile, img_list):
     # Calculates the nearest neighbors of the master item
     t = AnnoyIndex(DIMS, metric='angular')
-    t.load(imagedata.getAnnoyIndexTempFile())
+    t.load(annoyindex_tempfile)
     list_of_thumb_nearest_neighbors = []
     for item in img_list:
         nearest_neighbors = t.get_nns_by_item(item, n_nearest_neighbors)
         thumb_nearest_neighbors = []
         for j in nearest_neighbors:
-            neighbor_name = list(imagedata.getKeys())[j]
-            thumb_nearest_neighbors.append(neighbor_name)
+            thumb_nearest_neighbors.append(j)
         list_of_thumb_nearest_neighbors.append(thumb_nearest_neighbors)
     return list_of_thumb_nearest_neighbors
 
@@ -111,7 +110,7 @@ class ProcessAnnoyWorkerThread(Thread):
         img_list_of_lists.append(img_list)
         # read files separately using multithreaded pool
         pool = Pool(cpu_count())
-        func = partial(get_nns, self._imagedata)
+        func = partial(get_nns, self._imagedata.getAnnoyIndexTempFile())
         load_results = pool.map_async(func, img_list_of_lists)
         pool.close()  # 'TERM'
         # maintain status gauge here
@@ -128,7 +127,11 @@ class ProcessAnnoyWorkerThread(Thread):
 
         for list_of_thumb_nearest_neighbors in load_results.get():
             for thumb_nearest_neighbors in list_of_thumb_nearest_neighbors:
-                returndata.append(thumb_nearest_neighbors)
+                names_list = []
+                for item in thumb_nearest_neighbors:
+                    name = list(self._imagedata.getKeys())[item]
+                    names_list.append(name)
+                returndata.append(names_list)
             # wx.PostEvent(self._notify_window,
             #              ResultEvent((file_index / self._imagedata.getSize()) * 0.25 + 0.75, EVT_RESULT_PROGRESS))
         wx.PostEvent(self._notify_window, ResultEvent(returndata, EVT_RESULT_NEIGHBORS))
