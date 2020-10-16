@@ -2,6 +2,7 @@
 
 import logging
 import multiprocessing
+import os
 
 import wx
 from wx.lib.dragscroller import DragScroller
@@ -361,7 +362,9 @@ class GUIMainFrame(MainFrame):
             self.m_scrolledWindow.redraw(event.data)
 
     def onClose(self, event):
-        logging.error("delete AnnoyIndex file " + self.imagedata.getAnnoyIndexTempFile())
+        logging.error("delete AnnoyIndex file (if exists)" + self.imagedata.getAnnoyIndexTempFile())
+        if os.path.exists(self.imagedata.getAnnoyIndexTempFile()):
+            os.remove(self.imagedata.getAnnoyIndexTempFile())
         self.Destroy()
 
 
