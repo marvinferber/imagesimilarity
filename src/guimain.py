@@ -10,6 +10,7 @@ from wx.lib.dragscroller import DragScroller
 import process
 import processannoy
 from wxmainframe import MainFrame
+from isv import isv
 
 THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
 
@@ -271,8 +272,7 @@ class GUIMainFrame(MainFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.SetTitle("Image Similarity Viewer")
-        icon = wx.Icon()
-        icon.CopyFromBitmap(wx.Bitmap("isv.ico", wx.BITMAP_TYPE_ANY))
+        icon = isv.GetIcon()
         self.SetIcon(icon)
         # Add the Canvas
         self.m_scrolledWindow = DragScrollerGallery(None, self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,

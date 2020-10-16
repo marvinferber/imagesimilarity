@@ -29,6 +29,7 @@ def get_nns(annoyindex_tempfile, img_list):
         for j in nearest_neighbors:
             thumb_nearest_neighbors.append(j)
         list_of_thumb_nearest_neighbors.append(thumb_nearest_neighbors)
+    t.unload()
     return list_of_thumb_nearest_neighbors
 
 
@@ -119,11 +120,14 @@ class ProcessAnnoyWorkerThread(Thread):
             time.sleep(0.3)
             remaining = min(load_results._number_left * load_results._chunksize, len(img_list_of_lists))
             # print("Waiting for", remaining, "tasks to complete...")
-            # wx.PostEvent(self._notify_window,
-            #                  ResultEvent((len(img_list_of_lists) - remaining) / len(img_list_of_lists), EVT_RESULT_PROGRESS))
+            wx.PostEvent(self._notify_window,
+                         ResultEvent(0.75 +((len(img_list_of_lists) - remaining) / len(img_list_of_lists)) * 0.25,
+                          EVT_RESULT_PROGRESS))
         if self._want_abort == 1:
             pool.terminate()
         pool.join()  # 'KILL'
+
+        self._t.unload()
 
         for list_of_thumb_nearest_neighbors in load_results.get():
             for thumb_nearest_neighbors in list_of_thumb_nearest_neighbors:
