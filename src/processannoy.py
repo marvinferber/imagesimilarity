@@ -9,7 +9,13 @@ from multiprocessing import Pool, cpu_count
 import numpy as np
 import tensorflow as tf
 import wx
-from annoy import AnnoyIndex
+
+try:
+    from annoy import AnnoyIndex
+except ImportError as err:
+    print("ImportError error: {0}".format(err) + " Please install Microsoft Visual C++ 2019 Redistributable for this program to run correctly.")
+    import sys
+    sys.exit()
 from process import ResultEvent, EVT_RESULT_NEIGHBORS, EVT_RESULT_PROGRESS, THUMBNAIL_MAX_SIZE
 
 from functools import partial
