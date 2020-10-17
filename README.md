@@ -11,12 +11,15 @@ It offers:
 
 ## Download
 
-The latest release binaries can be found [here](https://github.com/marvinferber/imagesimilarity/releases). Windows and Linux binaries are available. On Windows, the maximum number of images is restricted to 1000 images. MacOS is not supported. 
+The latest release binaries can be found [here](https://github.com/marvinferber/imagesimilarity/releases). 
+Windows and Linux binaries are available. 
+
+MacOS is not supported, yet. Feel free to contribute. 
 
 ## Develop
 
 Stable releases can be found in the master branch. The current state of development is in the develop branch. 
-Check out th development branch 
+Check out the development branch 
 
 `git clone -b develop https://github.com/marvinferber/imagesimilarity` 
 
@@ -36,18 +39,28 @@ Windows CMD:`venv\Scripts\activate.bat`
 
 `cd src`
 
-Install dependencies, first general dependecies:
+Since Annoy (Approximate Nearest Neighbors Oh Yeah) needs C++14 support to compile on Windows, 
+it is necessary to install [Visual Studio Build Tools 2019](https://visualstudio.microsoft.com/downloads/) 
+on Windows at first.
+Install Python package dependencies, first general dependencies:
 * `pip install --upgrade pip` (pip version 19 or higher)
 * `pip install wheel`
 
-Program dependecies:
+Program dependencies:
 * `pip install .` (reads setup.py dependencies)
 
 Run the program:
 * `python guimain.py`
 
-Since annoy cannot be installed via pip on Windows, there is a fixed whl package for Python 3.7 included in setup.py.
 
 ## Release/Install
 
-Pyinstaller can be used to create a distributable package both on Windows and Linux. However, the latest pyinstaller devel is necessary to handle TensorFlow dependencies correctly. Pyinstaller devel will be installed as described above using pip and setup.py for this purpose. Just type `pyinstaller src/guimain.py` to create the distributable package. It will be located in a dist folder.
+Pyinstaller can be used to create a distributable package both on Windows and Linux. 
+However, the latest pyinstaller devel is necessary to handle TensorFlow dependencies correctly. 
+Pyinstaller devel will be installed as described above using pip and setup.py for this purpose. 
+Just type `pyinstaller src/guimain.py` to create the distributable package. 
+It will be located in a dist folder.
+
+On Windows, it is necessary to have 
+[Microsoft Visual C++ 2019 Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads) components installed 
+in order to run the distributable binary package.

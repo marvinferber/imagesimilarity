@@ -2,6 +2,7 @@
 
 import logging
 import multiprocessing
+import os
 
 import wx
 from wx.lib.dragscroller import DragScroller
@@ -9,6 +10,7 @@ from wx.lib.dragscroller import DragScroller
 import process
 import processannoy
 from wxmainframe import MainFrame
+from isv import isv
 
 THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
 
@@ -168,9 +170,22 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
 
         if self.similaritydata is not None:
             canvas_width, canvas_height = self.GetSize()
-            drawpoint = (0, 0)
+
+            # heading
+            dc.SetTextForeground((255, 0, 0))
+            ps = dc.GetFont().GetPointSize() * 2
+            font = wx.Font(pointSize=ps, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, faceName='Consolas')
+            hspace = int(font.GetPixelSize().height / 4)
+            dc.SetFont(font)
+            dc.DrawText("original", 0, hspace)#
+            dc.DrawText("--> approximate most similar images", THUMBNAIL_MAX_SIZE, hspace)
+            pointheight = (hspace*2) + font.GetPixelSize().height
+
+            # set cursor
+            drawpoint = (0, pointheight)
 
             for line in self.similaritydata:
+                first = True
                 for key in line:
                     #
                     try:
@@ -189,7 +204,11 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
                         self.poskeydict[pointheight] = {}
                     self.poskeydict[pointheight][pointwidth] = key
                     #
-                    pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
+                    if (first==True):
+                        pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + THUMBNAIL_MAX_SIZE/4 + 1
+                        first = False
+                    else:
+                        pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
                     drawpoint = (pointwidth, pointheight)
                 pointwidth, pointheight = drawpoint
                 pointwidth = 0
@@ -253,8 +272,7 @@ class GUIMainFrame(MainFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.SetTitle("Image Similarity Viewer")
-        icon = wx.Icon()
-        icon.CopyFromBitmap(wx.Bitmap("isv.ico", wx.BITMAP_TYPE_ANY))
+        icon = isv.GetIcon()
         self.SetIcon(icon)
         # Add the Canvas
         self.m_scrolledWindow = DragScrollerGallery(None, self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
@@ -342,6 +360,12 @@ class GUIMainFrame(MainFrame):
             self.bSizerImageSection.Add(self.m_scrolledWindow, 1, wx.EXPAND | wx.ALL, 5)
             self.bSizerImageSection.Layout()
             self.m_scrolledWindow.redraw(event.data)
+
+    def onClose(self, event):
+        logging.error("delete AnnoyIndex file (if exists)" + self.imagedata.getAnnoyIndexTempFile())
+        if os.path.exists(self.imagedata.getAnnoyIndexTempFile()):
+            os.remove(self.imagedata.getAnnoyIndexTempFile())
+        self.Destroy()
 
 
 if __name__ == '__main__':

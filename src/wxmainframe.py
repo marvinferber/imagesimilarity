@@ -72,6 +72,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.openFolderHandler, id=self.openFolder.GetId())
         self.Bind(wx.EVT_MENU, self.openFoldersHandler, id=self.openFolders.GetId())
         self.Bind(wx.EVT_MENU, self.processAnnoyHandler, id=self.processAnnoy.GetId())
+        self.Bind(wx.EVT_CLOSE, self.onClose)
 
     def __del__(self):
         pass
@@ -84,4 +85,7 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def processAnnoyHandler(self, event):
+        event.Skip()
+
+    def onClose(self, event):
         event.Skip()
