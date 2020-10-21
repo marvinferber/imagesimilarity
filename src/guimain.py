@@ -4,13 +4,12 @@ import logging
 import multiprocessing
 import os
 
-import wx
-from wx.lib.dragscroller import DragScroller
-
 import process
 import processannoy
-from wxmainframe import MainFrame
+import wx
 from isv import isv
+from wx.lib.dragscroller import DragScroller
+from wxmainframe import MainFrame
 
 THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
 
@@ -177,9 +176,9 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
             font = wx.Font(pointSize=ps, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, faceName='Consolas')
             hspace = int(font.GetPixelSize().height / 4)
             dc.SetFont(font)
-            dc.DrawText("original", 0, hspace)#
+            dc.DrawText("original", 0, hspace)  #
             dc.DrawText("--> approximate most similar images", THUMBNAIL_MAX_SIZE, hspace)
-            pointheight = (hspace*2) + font.GetPixelSize().height
+            pointheight = (hspace * 2) + font.GetPixelSize().height
 
             # set cursor
             drawpoint = (0, pointheight)
@@ -204,8 +203,8 @@ class DragScrollerSimilarity(wx.ScrolledWindow):
                         self.poskeydict[pointheight] = {}
                     self.poskeydict[pointheight][pointwidth] = key
                     #
-                    if (first==True):
-                        pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + THUMBNAIL_MAX_SIZE/4 + 1
+                    if (first == True):
+                        pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + THUMBNAIL_MAX_SIZE / 4 + 1
                         first = False
                     else:
                         pointwidth = pointwidth + THUMBNAIL_MAX_SIZE + 1
