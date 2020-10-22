@@ -11,6 +11,8 @@ from isv import isv
 from wx.lib.dragscroller import DragScroller
 from wxmainframe import MainFrame
 
+import processhaarpsi
+
 THUMBNAIL_MAX_SIZE = process.THUMBNAIL_MAX_SIZE
 
 
@@ -295,6 +297,13 @@ class GUIMainFrame(MainFrame):
         # start WorkerThread
         self.worker = processannoy.ProcessAnnoyWorkerThread(self, self.imagedata)
 
+        event.Skip()
+
+    def processHaarpsiHandler(self, event):
+        self.m_staticTextStatus.SetLabel('Computing similarities HaarPSI... ')
+
+        # start WorkerThread
+        self.worker = processhaarpsi.ProcessHaarPSIWorkerThread(self, self.imagedata)
         event.Skip()
 
     def openFolderHandler(self, event):
