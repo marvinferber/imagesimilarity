@@ -63,7 +63,8 @@ class ProcessAnnoyWorkerThread(Thread):
         """Run Worker Thread."""
         # Definition of module with using tfhub.dev handle
         logging.error("Start loading mobilenet...")
-        module_handle = "https://tfhub.dev/google/imagenet/mobilenet_v2_140_224/feature_vector/4"
+        module_handle = "https://www.kaggle.com/models/google/mobilenet-v2/frameworks/TensorFlow2/variations/140-224-feature-vector/versions/2"
+        #module_handle = "https://tfhub.dev/google/imagenet/mobilenet_v2_140_224/feature_vector/4"
         # module_handle = "4/"
         # Load the module
         import tensorflow_hub as hub
