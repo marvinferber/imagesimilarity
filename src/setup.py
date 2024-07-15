@@ -17,7 +17,7 @@ if platform.system() == 'Windows':
             'tensorflow==2.0.2',
             'tensorflow_hub',
             'annoy>=1.17',
-		    'setuptools==44',
+		    'setuptools==70.0.0',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )
@@ -37,7 +37,7 @@ else:
             'tensorflow==2.0.2',
             'tensorflow_hub',
             'annoy>=1.17',
-		    'setuptools==44',
+		    'setuptools==70.0.0',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )
