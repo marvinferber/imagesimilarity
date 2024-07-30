@@ -14,7 +14,7 @@ if platform.system() == 'Windows':
         install_requires=[
             'wxPython>=4',
             'Pillow>=7',
-            'tensorflow==2.0.2',
+            'tensorflow==2.12.1',
             'tensorflow_hub',
             'annoy>=1.17',
 		    'setuptools==44',
@@ -34,7 +34,7 @@ else:
         install_requires=[
             'wxPython>=4',
             'Pillow>=7',
-            'tensorflow==2.0.2',
+            'tensorflow==2.12.1',
             'tensorflow_hub',
             'annoy>=1.17',
 		    'setuptools==44',
