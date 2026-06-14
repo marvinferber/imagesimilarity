@@ -19,6 +19,7 @@ MacOS is not supported, yet. Feel free to contribute.
 ## Develop
 
 Stable releases can be found in the master branch. The current state of development is in the develop branch. 
+Currently tested with Python 3.11 and Python 3.12.
 Check out the development branch 
 
 `git clone -b develop https://github.com/marvinferber/imagesimilarity` 
@@ -39,8 +40,8 @@ Windows CMD:`venv\Scripts\activate.bat`
 
 `cd src`
 
-Since Annoy (Approximate Nearest Neighbors Oh Yeah) needs C++14 support to compile on Windows, 
-it is necessary to install [Visual Studio Build Tools 2019](https://visualstudio.microsoft.com/downloads/) 
+Since Annoy (Approximate Nearest Neighbors Oh Yeah) may need C++14 support to compile on Windows, 
+it may be necessary to install [Visual Studio Build Tools 2019](https://visualstudio.microsoft.com/downloads/) 
 on Windows at first.
 Install Python package dependencies, first general dependencies:
 * `pip install --upgrade pip` (pip version 19 or higher)
@@ -61,6 +62,6 @@ Pyinstaller devel will be installed as described above using pip and setup.py fo
 Just type `pyinstaller src/guimain.py` to create the distributable package. 
 It will be located in a dist folder.
 
-On Windows, it is necessary to have 
+On Windows, it may be necessary to have 
 [Microsoft Visual C++ 2019 Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads) components installed 
 in order to run the distributable binary package.

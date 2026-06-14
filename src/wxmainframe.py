@@ -35,10 +35,17 @@ class MainFrame(wx.Frame):
         self.m_menubar.Append(self.file, u"File")
         # Process menu
         self.process = wx.Menu()
-        self.processAnnoy = wx.MenuItem(self.process, wx.ID_ANY, u"Process Annoy", wx.EmptyString, wx.ITEM_NORMAL)
+        self.processAnnoy = wx.MenuItem(self.process, wx.ID_ANY, u"Match Similar Images", wx.EmptyString, wx.ITEM_NORMAL)
         self.process.Append(self.processAnnoy)
 
         self.m_menubar.Append(self.process, u"Process")
+        
+        # Export menu
+        self.export = wx.Menu()
+        self.exportFolder = wx.MenuItem(self.export, wx.ID_ANY, u"Export all sorted", wx.EmptyString, wx.ITEM_NORMAL)
+        self.export.Append(self.exportFolder)
+
+        self.m_menubar.Append(self.export, u"Export")
 
         self.SetMenuBar(self.m_menubar)
 
@@ -72,6 +79,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.openFolderHandler, id=self.openFolder.GetId())
         self.Bind(wx.EVT_MENU, self.openFoldersHandler, id=self.openFolders.GetId())
         self.Bind(wx.EVT_MENU, self.processAnnoyHandler, id=self.processAnnoy.GetId())
+        self.Bind(wx.EVT_MENU, self.exportImagesHandler, id=self.exportFolder.GetId())
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
     def __del__(self):
