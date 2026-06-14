@@ -14,7 +14,7 @@ if platform.system() == 'Windows':
         install_requires=[
             'wxPython>=4',
             'Pillow>=7',
-            'tensorflow==2.0.2',
+            'tensorflow',
             'tensorflow_hub',
             'annoy>=1.17',
 		    'setuptools==44',
@@ -33,11 +33,11 @@ else:
         description='Find and display images that are similar.',
         install_requires=[
             'wxPython>=4',
-            'Pillow>=7',
-            'tensorflow==2.0.2',
+            'Pillow==7',
+            'tensorflow',
             'tensorflow_hub',
             'annoy>=1.17',
-		    'setuptools==44',
+		    'setuptools=80',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )

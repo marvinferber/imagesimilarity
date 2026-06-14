@@ -137,7 +137,7 @@ def read_thumb_oriented_exif(jpg):
         logging.error("UnidentifiedImageError error: {0}".format(err) + " at image " + jpg)
     except OSError as err:
         logging.error("OSError error: {0}".format(err) + " at image " + jpg)
-
+    #logging.error(f"image {jpg} datetime data {imagedate.strftime("%d.%m.%Y %H:%M:%S")}")
     return jpg, img_bytes, imagedate, img_w, img_h
 
 
@@ -244,6 +244,7 @@ class LoadImagesWorkerThread(Thread):
         wx.PostEvent(self._notify_window, ResultEvent(0.0, EVT_RESULT_PROGRESS))
         ################################################
         stoptime = datetime.now()
+        logging.error(f"read {len(self._imagedata.imagedict)} files and {len(self._imagedata.datetimedict)} dates")
         logging.error(
             "LoadImagesWorkerThread took " + str(stoptime-starttime) + " to load " + str(self._imagedata.getSize())+ " image files")
 

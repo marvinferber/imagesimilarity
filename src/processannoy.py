@@ -75,7 +75,7 @@ class ProcessAnnoyWorkerThread(Thread):
             # Loads and pre-process the image
             btmp = self._imagedata.getThumbnail(item)
             # pil_img = wx2PIL(wx_img)
-            image_array = np.fromstring(bytes(btmp), dtype=np.uint8).reshape(
+            image_array = np.frombuffer(bytes(btmp), dtype=np.uint8).reshape(
                 (THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE, 3))
             # image_array = tf.keras.preprocessing.image.img_to_array(pil_img)
             image_array = tf.convert_to_tensor(image_array)
