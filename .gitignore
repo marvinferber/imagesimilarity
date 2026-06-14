@@ -2,3 +2,6 @@ venv/
 src/__pycache__/
 src/*.egg-info
 src/build/
+build/
+dist/
+guimain.spec

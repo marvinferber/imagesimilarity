@@ -4,7 +4,7 @@ import platform
 if platform.system() == 'Windows':
     setup(
         name='imagesimilarity',
-        version='0.1.2',
+        version='0.1.4',
         packages=[''],
         url='https://github.com/marvinferber/imagesimilarity',
         license='Apache License 2.0',
@@ -13,18 +13,18 @@ if platform.system() == 'Windows':
         description='Find and display images that are similar.',
         install_requires=[
             'wxPython>=4',
-            'Pillow>=7',
+            'Pillow==9.3.0',
             'tensorflow',
             'tensorflow_hub',
             'annoy>=1.17',
-		    'setuptools==44',
+		    'setuptools==80',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )
 else:
     setup(
         name='imagesimilarity',
-        version='0.1.2',
+        version='0.1.4',
         packages=[''],
         url='https://github.com/marvinferber/imagesimilarity',
         license='Apache License 2.0',
@@ -37,7 +37,7 @@ else:
             'tensorflow',
             'tensorflow_hub',
             'annoy>=1.17',
-		    'setuptools=80',
+		    'setuptools==80',
 		    'pyinstaller @ https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz'
         ]
     )
